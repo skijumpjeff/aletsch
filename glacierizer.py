@@ -82,14 +82,9 @@ def vault_list(vault_name):
     vault = glacier.get_vault(vault_name)
     job_id = vault.retrieve_inventory()
     job = vault.get_job(job_id)
-    cursor.execute(sql_jobs_create.format(
-        job.id,  
-        job.action, 
-        job.status_code, 
-        vault_name
-    ))
+    cursor.execute(sql_jobs_create.format(job.id, job.action, job.status_code, vault_name))
     db.commit()
-    print 'Listing vault %s, job is %s' % (vault_name, job.id)
+    print 'Job ID: %s' % (vault_name, job.id)
     print 'Glacier actions take around 4 hours to complete. Please configure notifications on the vault to know when the job is complete and results are available.'
     
 def archive(args):
@@ -103,24 +98,37 @@ def archive(args):
         archive_delete(vault, args.files)
     
 def archive_read(vault, files):
-    print 'Not yet implemented'
-    return
+    for f in files:
+        if os.path.isfile(f):
+            archive_id = _get_archive_id(vault.name, f)
+        else: # try using the item as the archive ID
+            archive_id = f
+    job = vault.retrieve_archive(archive_id)
+    cursor.execute(sql_jobs_create.format(job.id, job.action, job.status_code, vault.name))
+    db.commit()
+    print 'Job ID: %s' % (vault.name, archive_id, job.id)
+    print 'Glacier actions take around 4 hours to complete. Please configure notifications on the vault to know when the job is complete and results are available.'
     
 def archive_write(vault, files):
     for f in files:
         archive_id = vault.create_archive_from_file(f, description=f)
         cursor.execute(sql_vault_create.format(vault.name, f, archive_id))
         db.commit()
-        print 'Wrote %s (%s)' % (f, archive_id)
+        print 'Wrote file %s (%s)' % (f, archive_id)
     
 def archive_delete(vault, files):
     for f in files:
-        archive_id = _get_archive_id(vault.name, f)
-        vault.delete_archive(archive_id)
-        cursor.execute(sql_vault_delete.format(vault.name, f))
-        db.commit()
-        print 'Deleted %s (%s)' % (f, archive_id)
-
+        if os.path.isfile(f):
+            archive_id = _get_archive_id(vault.name, f)
+            cursor.execute(sql_vault_delete.format(vault.name, f))
+            db.commit()
+            vault.delete_archive(archive_id)
+            print 'Deleted file %s (%s)' % (f, archive_id)
+        else: # try using the item as the archive ID
+            archive_id = f
+            vault.delete_archive(archive_id)
+            print 'Deleted archive %s' % archive_id
+            
 def job(args):
     if args.action == 'output':
         job_output(args.job_id)
@@ -173,6 +181,29 @@ def _get_archive_id(vault_name, file_name):
     return archive_id
 
 #------------------------------------------------------------------------------
+
+# Attempts to load the AWS access and secret keys from the .boto config
+def get_aws_credentials(config_file):
+    # Try to read .boto configuration from several places (later ones take precedence)
+    try: # user home directory (~/.boto)
+        boto_cfg = Config(os.path.join(os.path.expanduser('~'), '.boto'))
+    except: pass
+    try: # current directory (./.boto)
+        boto_cfg = Config('.boto')
+    except: pass
+    try: # command line option (--config <file>)
+        if config_file: boto_cfg = Config(config_file)
+    except: pass
+
+    # Load the AWS key credentials
+    try:
+        access_key = boto_cfg.get('Credentials', 'aws_access_key_id')
+        secret_key = boto_cfg.get('Credentials', 'aws_secret_access_key')
+    except:
+        print >> sys.stderr, 'Could not find .boto config file'
+        sys.exit(1)
+        
+    return (access_key, secret_key)
     
 def main():
     parser = argparse.ArgumentParser(
@@ -188,19 +219,19 @@ def main():
                 boto (>=2.7.0) https://github.com/boto/boto"
             '''))
     parser.add_argument('-v', '--version', action='version', version='%(prog)s 1.3')
-    parser.add_argument('-c', '--config', )
+    parser.add_argument('--config', help='.boto configuration file')
     subparsers = parser.add_subparsers()
     
     parser_vault = subparsers.add_parser('vault')
     parser_vault.set_defaults(func=vault)
     parser_vault.add_argument('action', choices=['create','list'])
-    parser_vault.add_argument('vault_name')
+    parser_vault.add_argument('vault_name', help='Glacier vault name')
     
     parser_archive = subparsers.add_parser('archive')
     parser_archive.set_defaults(func=archive)
     parser_archive.add_argument('action', choices=['read','write','delete'])
-    parser_archive.add_argument('vault_name')
-    parser_archive.add_argument('files', nargs=argparse.REMAINDER)
+    parser_archive.add_argument('vault_name', help='Glacier vault name')
+    parser_archive.add_argument('files', nargs=argparse.REMAINDER, help='One or more files (can also be archive IDs)')
      
     parser_job = subparsers.add_parser('job')
     parser_job.set_defaults(func=job)
@@ -209,25 +240,9 @@ def main():
     
     args = parser.parse_args()
     
-    # Try to read .boto configuration from several places (later ones take precedence)
-    try: # user home directory (~/.boto)
-        boto_cfg = Config(os.path.join(os.path.expanduser('~'), '.boto'))
-    except: pass
-    try: # current directory (./.boto)
-        boto_cfg = Config('.boto')
-    except: pass
-    try: # command line option (--config <file>)
-        if args.config: boto_cfg = Config(args.config)
-    except: pass
+    # Load the AWS credentials
+    access_key, secret_key = get_aws_credentials(args.config)
 
-    # Load the AWS key credentials
-    try:
-        access_key = boto_cfg.get('Credentials', 'aws_access_key_id')
-        secret_key = boto_cfg.get('Credentials', 'aws_secret_access_key')
-    except:
-        print >> sys.stderr, 'Could not find .boto config file'
-        sys.exit(1)
-         
     init(access_key, secret_key)
     args.func(args)
 
