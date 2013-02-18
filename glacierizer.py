@@ -54,13 +54,13 @@ def init(access_key, secret_key):
     cursor.execute(sql_jobs)
     db.commit()
   
-# SQL queries for vault operations
-sql_vault = "CREATE TABLE IF NOT EXISTS {0} (filename text, archive_id text)"
-sql_vault_create  = "INSERT INTO {0} VALUES ('{1}','{2}')"
-sql_vault_read   = "SELECT * FROM {0} WHERE filename = '{1}'"
-sql_vault_delete = "DELETE FROM {0} WHERE filename = '{1}'"
-   
-# SQL queries for managing jobs
+sql_vault_create = "CREATE TABLE IF NOT EXISTS {0} (filename text, archive_id text)"
+sql_vault_delete = "DROP TABLE {0}"
+
+sql_archive_create  = "INSERT INTO {0} VALUES ('{1}','{2}')"
+sql_archive_read   = "SELECT * FROM {0} WHERE filename = '{1}'"
+sql_archive_delete = "DELETE FROM {0} WHERE filename = '{1}'"
+
 sql_jobs = "CREATE TABLE IF NOT EXISTS jobs (id text, action text, status_code text, vault_name text)"
 sql_jobs_create = "INSERT INTO jobs VALUES ('{0}','{1}','{2}','{3}')"
 sql_jobs_read = "SELECT * FROM jobs WHERE id LIKE '{0}%'"
@@ -76,9 +76,9 @@ def vault(args):
 
 def vault_create(vault_name):
     glacier.create_vault(vault_name)
-    cursor.execute(sql_vault.format(vault_name))
+    cursor.execute(sql_vault_create.format(vault_name))
     db.commit()
-    print 'Created vault %s' % args.vault_name
+    print 'Created vault %s' % vault_name
         
 def vault_list(vault_name):
     vault = glacier.get_vault(vault_name)
@@ -88,6 +88,11 @@ def vault_list(vault_name):
     db.commit()
     print 'Job ID: %s' % job.id
     print glacier_jobs_notification
+    
+def vault_delete(vault_name):
+    vault = glacier.delete_vault(vault_name)
+    cursor.execute(sql_vault_delete.format(vault_name))
+    print 'Deleted vault %s' % vault_name
     
 def archive(args):
     vault = glacier.get_vault(args.vault_name)
@@ -114,7 +119,7 @@ def archive_read(vault, files):
 def archive_write(vault, files):
     for f in files:
         archive_id = vault.create_archive_from_file(f, description=f)
-        cursor.execute(sql_vault_create.format(vault.name, f, archive_id))
+        cursor.execute(sql_archive_create.format(vault.name, f, archive_id))
         db.commit()
         print 'Wrote file %s (%s)' % (f, archive_id)
     
@@ -122,7 +127,7 @@ def archive_delete(vault, files):
     for f in files:
         if os.path.isfile(f):
             archive_id = _get_archive_id(vault.name, f)
-            cursor.execute(sql_vault_delete.format(vault.name, f))
+            cursor.execute(sql_archive_delete.format(vault.name, f))
             db.commit()
             vault.delete_archive(archive_id)
             print 'Deleted file %s (%s)' % (f, archive_id)
@@ -175,7 +180,7 @@ def job_status(job_id=None):
             cursor.execute(sql_jobs_delete.format(id))
                  
 def _get_archive_id(vault_name, file_name):
-    cursor.execute(sql_vault_read.format(vault_name, file_name))
+    cursor.execute(sql_archive_read.format(vault_name, file_name))
     archive_id = cursor.fetchone()
     if not archive_id:
         print >> sys.stderr, 'Could not find archive ID for file %s in local database.' % file_name
@@ -213,7 +218,7 @@ def main():
         description='Interface to Amazon Glacier storage service.',
         epilog=textwrap.dedent('''\
             modes:
-                vault   create|list         vault_name
+                vault   create|list|delete  vault_name
                 archive read|write|delete   vault_name file1 [file2 ...]
                 job     output|status       job_id
                 
