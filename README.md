@@ -11,7 +11,7 @@ Modes:
 
     vault    create|list|delete <vault_name>  
     archive  read|write|delete <vault_name> <file1> [<file2> ...]
-    job      output|status <job_id*>
+    job      output|status <job_id>
     
     Notes:
       - 'vault delete' will fail if the vault is not empty
