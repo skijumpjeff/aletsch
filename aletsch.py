@@ -36,7 +36,7 @@ from boto.pyami.config import Config
 glacier = None
 
 # Connect to the SQLite database
-db = sqlite3.connect('glacier.db')
+db = sqlite3.connect('aletsch.db')
 db.row_factory = sqlite3.Row
 cursor = db.cursor()
 
