@@ -73,6 +73,8 @@ def vault(args):
         vault_create(args.vault_name)
     elif args.action == 'list':
         vault_list(args.vault_name)
+    elif args.action == 'delete':
+        vault_delete(args.vault_name)
 
 def vault_create(vault_name):
     glacier.create_vault(vault_name)
