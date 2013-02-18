@@ -9,9 +9,9 @@ Usage:
   
 Modes:
 
-    vault    create|list|delete <vault_name>  
-    archive  read|write|delete <vault_name> <file1> [<file2> ...]
-    job      output|status <job_id>
+    vault    create|list|delete     <vault_name>  
+    archive  read|write|list|delete <vault_name> <file1> [<file2> ...]
+    job      output|status          <job_id>
     
     Notes:
       - 'vault list' and 'archive read' both return a job ID of the submitted request. In order to retrieve
