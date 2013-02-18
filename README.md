@@ -1,5 +1,5 @@
-glacierizer
-===========
+aletsch
+=======
 
 A script to interact with the AWS Glacier long-term data storage service.
 
