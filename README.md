@@ -11,7 +11,7 @@ Modes:
 
     vault    create|list|delete     <vault_name> [<job_id>]
     archive  read|write|list|delete <vault_name> <file1> [<file2> ...]
-    job      output|status          <job_id>
+    job      output|status|remove   <job_id>
     
     Notes:
       - 'vault list' and 'archive read' both return a job ID of the submitted request. In order to retrieve
