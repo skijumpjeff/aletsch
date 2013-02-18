@@ -40,6 +40,8 @@ db = sqlite3.connect('glacier.db')
 db.row_factory = sqlite3.Row
 cursor = db.cursor()
 
+glacier_jobs_notification = '''Glacier jobs take around 4 hours to complete. Please configure notifications on the vault to know when the job is complete and results are available.'''
+
 def init(access_key, secret_key):
     global glacier
 
@@ -65,7 +67,7 @@ sql_jobs_read = "SELECT * FROM jobs WHERE id LIKE '{0}%'"
 sql_jobs_read_all = "SELECT * FROM jobs"
 sql_jobs_update = "UPDATE jobs SET status_code = '{0}' WHERE id = '{1}'"
 sql_jobs_delete = "DELETE FROM jobs WHERE id = '{0}'"
-   
+
 def vault(args):
     if args.action == 'create':
         vault_create(args.vault_name)
@@ -84,8 +86,8 @@ def vault_list(vault_name):
     job = vault.get_job(job_id)
     cursor.execute(sql_jobs_create.format(job.id, job.action, job.status_code, vault_name))
     db.commit()
-    print 'Job ID: %s' % (vault_name, job.id)
-    print 'Glacier actions take around 4 hours to complete. Please configure notifications on the vault to know when the job is complete and results are available.'
+    print 'Job ID: %s' % job.id
+    print glacier_jobs_notification
     
 def archive(args):
     vault = glacier.get_vault(args.vault_name)
@@ -106,8 +108,8 @@ def archive_read(vault, files):
     job = vault.retrieve_archive(archive_id)
     cursor.execute(sql_jobs_create.format(job.id, job.action, job.status_code, vault.name))
     db.commit()
-    print 'Job ID: %s' % (vault.name, archive_id, job.id)
-    print 'Glacier actions take around 4 hours to complete. Please configure notifications on the vault to know when the job is complete and results are available.'
+    print 'Job ID: %s' % job.id
+    print glacier_jobs_notification
     
 def archive_write(vault, files):
     for f in files:
