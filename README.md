@@ -9,8 +9,7 @@ Usage:
   
 Modes:
 
-    vault    create <vault_name>  
-    vault    list <vault_name>
+    vault    create|list|delete <vault_name>  
     archive  read|write|delete <vault_name> <file1> [<file2> ...]
     job      output|status <job_id*>
     
