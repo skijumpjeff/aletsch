@@ -5,7 +5,7 @@ A script to interact with the AWS Glacier long-term data storage service.
 
 Usage:
 
-`glacierizer.py [options] <mode>`
+`python aletsch.py [options] <mode>`
   
 Modes:
 
