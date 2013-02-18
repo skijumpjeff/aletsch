@@ -17,7 +17,7 @@ Modes:
     
 Options:
 
-    -c, --config=file   : load credentials from boto configuration file
+    -c, --config=file   : load credentials from the specified boto configuration file
     -h, --help          : display this help and exit
     -v, --version       : display version number
   
