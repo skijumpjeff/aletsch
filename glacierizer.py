@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 # =============================================================================
-#  Version: 1.3 (February 13, 2013)
+#  Version: 1.4 (February 17, 2013)
 #  Author: Jeff Puchalski (jpp13@cornell.edu)
 #
 # =============================================================================
@@ -227,7 +227,7 @@ def main():
             dependencies:
                 boto (>=2.7.0) https://github.com/boto/boto"
             '''))
-    parser.add_argument('-v', '--version', action='version', version='%(prog)s 1.3')
+    parser.add_argument('-v', '--version', action='version', version='%(prog)s 1.4')
     parser.add_argument('--config', help='.boto configuration file')
     subparsers = parser.add_subparsers()
     
